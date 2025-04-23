@@ -1,0 +1,54 @@
+services:
+  backend_task:
+    image: ${DOCKER_REGISTRY-}backendtask
+    build:
+      context: .
+      dockerfile: BackEnd_Task/Dockerfile
+    environment:
+        - ASPNETCORE_ENVIRONMENT=Development
+        - ASPNETCORE_HTTP_PORTS=8080
+        - ASPNETCORE_URLS=http://+:80
+        - ConnectionStrings__Default=PORT=5432;HOST=postgres-db;TIMEOUT=15;POOLING=True;MINPOOLSIZE=1;MAXPOOLSIZE=100;COMMANDTIMEOUT=20;DATABASE='postgres';PASSWORD='1234';USER ID='postgres'
+    networks:
+        - local
+    depends_on:
+        postgres-db:
+            condition: service_healthy
+    ports:
+        - "5001:80"
+
+  postgres-db:
+    container_name: postgres-db
+    image: postgres:15-alpine
+    networks:
+        - local
+    environment:
+        - POSTGRES_DB=postgres
+        - POSTGRES_PASSWORD=1234
+    healthcheck:
+        test: pg_isready -U postgres -d postgres
+        interval: 10s
+        timeout: 3s
+        retries: 3
+    ports:
+        - "5432:5432"
+
+##########################################
+## Services
+##########################################
+  web-client:
+    container_name: web-client
+    build:
+        context: ../todo-app
+        dockerfile: Dockerfile
+    restart: on-failure
+    environment:
+        - NODE_ENV=production
+    networks:
+        - local
+    ports:
+        - 3001:3000
+
+networks:
+    local:
+        driver: bridge
